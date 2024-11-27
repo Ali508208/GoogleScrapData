@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">Maps Scraper</a>
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <img src="https://www.clipartmax.com/png/full/319-3191274_male-avatar-admin-profile.png"
+                    alt="User Avatar" class="rounded-circle" style="width: 40px; height: 40px;">
+            </div>
+            <div>
+                <strong>Admin</strong>
+            </div>
+            <button class="btn btn-danger ms-3" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-3">
+    <h2 class="mb-4 text-center">Google Maps Scraper Dashboard</h2>
+    <form id="searchForm" class="shadow p-4 bg-white rounded">
+        <h4 class="mb-3">Search Filters</h4>
+        <div class="mb-3">
+            <label for="industry" class="form-label">Industry</label>
+            <select class="form-select" id="industry" name="industry" required>
+                <option value="" disabled selected>Select an industry</option>
+                <option value="Hotels">Hotels</option>
+                <option value="Hospitals">Hospitals</option>
+                <option value="ATMs">ATMs</option>
+                <option value="Restaurants">Restaurants</option>
+                <option value="Supermarkets">Supermarkets</option>
+                <option value="Shopping Malls">Shopping Malls</option>
+                <option value="Gas Stations">Gas Stations</option>
+                <option value="Pharmacies">Pharmacies</option>
+                <option value="Cinemas">Cinemas</option>
+                <option value="Gyms">Gyms</option>
+                <option value="Parks">Parks</option>
+                <option value="Schools">Schools</option>
+                <option value="Universities">Universities</option>
+                <option value="Museums">Museums</option>
+                <option value="Libraries">Libraries</option>
+                <option value="Banks">Banks</option>
+                <option value="Post Offices">Post Offices</option>
+                <option value="Hardware Stores">Hardware Stores</option>
+                <option value="Clothing Stores">Clothing Stores</option>
+                <option value="Electronics Stores">Electronics Stores</option>
+                <option value="Furniture Stores">Furniture Stores</option>
+                <option value="Jewelry Stores">Jewelry Stores</option>
+                <option value="Pet Stores">Pet Stores</option>
+                <option value="Car Dealerships">Car Dealerships</option>
+                <option value="Travel Agencies">Travel Agencies</option>
+            </select>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <label for="country" class="form-label">Country</label>
+                <input type="text" class="form-control" id="country" name="country" placeholder="e.g., USA" required>
+            </div>
+            <!-- <div class="col-md-4">
+                <label for="state" class="form-label">State</label>
+                <input type="text" class="form-control" id="state" name="state" placeholder="e.g., California">
+            </div> -->
+            <div class="col-md-4">
+                <label for="city" class="form-label">City</label>
+                <input type="text" class="form-control" id="city" name="city" placeholder="e.g., Los Angeles" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-4 w-100">Search</button>
+    </form>
+
+
+    <!-- Progress Modal -->
+    <div class="modal fade" id="progressModal" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <h5 id="progressMessage">Fetching details, please wait...</h5>
+                    <button id="stopScrapingBtn" class="btn btn-danger mt-3">Stop Scraping</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Results Table -->
+    <div class="mt-5 mb-5 shadow p-4 bg-white rounded" style="display:none;" id="result-table-data">
+        <table id="resultsTable" class="table table-bordered table-striped" style="display:none;">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Rating</th>
+                    <th>Description</th>
+                    <th>Visited Link</th>
+                    <th>Image</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Logout Modal -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logoutModalLabel">Logout Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to logout?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="/logout" class="btn btn-danger">Confirm</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById("searchForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const industry = document.getElementById("industry").value;
+        const country = document.getElementById("country").value;
+        const city = document.getElementById("city").value;
+
+        // Check required fields
+        if (!industry || !country || !city) {
+            alert("Please fill all required fields: Industry, Country, and City.");
+            return;
+        }
+    });
+</script>
+{% endblock %}
