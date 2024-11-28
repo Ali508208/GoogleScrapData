@@ -10,14 +10,13 @@ import time
 def setup_driver():
     """Set up the Selenium WebDriver in headless mode."""
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless=old")
+    options.add_argument("--headless=new")
     options.add_argument("--start-maximized")
     options.add_argument("--disable-notifications")
     options.add_argument("--disable-popup-blocking")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--disable-software-rasterizer")
     return webdriver.Chrome(options=options)
 
 
@@ -83,12 +82,12 @@ def extract_business_data(business):
     }
 
 
-def scroll_and_scrape(driver, limit=2):
+def scroll_and_scrape(driver):
     """Scroll through Google Maps results and scrape data."""
     results = []
     end_of_list_detected = False
 
-    while not end_of_list_detected and len(results) < limit:
+    while not end_of_list_detected:
         try:
             scrollable_div = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@role='feed']"))
@@ -99,11 +98,6 @@ def scroll_and_scrape(driver, limit=2):
                 business_data = extract_business_data(business)
                 if business_data not in results:
                     results.append(business_data)
-                if len(results) >= limit:
-                    break  # Stop collecting results once the limit is reached
-
-            if len(results) >= limit:
-                break  # Exit the loop if the limit is reached
 
             try:
                 end_of_list = driver.find_element(By.CLASS_NAME, "PbZDve")
@@ -125,8 +119,7 @@ def scroll_and_scrape(driver, limit=2):
     return results
 
 
-
-def scrape_google_maps(industry, country, city, limit=2):
+def scrape_google_maps(industry, country, city):
     """Perform the Google Maps scrape for the provided search parameters."""
     search_query = f"{industry} in {city}, {country}"
     driver = setup_driver()
@@ -134,11 +127,10 @@ def scrape_google_maps(industry, country, city, limit=2):
 
     try:
         search_google_maps(driver, search_query)
-        results = scroll_and_scrape(driver, limit=limit)
+        results = scroll_and_scrape(driver)
     except Exception as e:
         print(f"Error during scraping: {e}")
     finally:
         driver.quit()
 
     return results
-
