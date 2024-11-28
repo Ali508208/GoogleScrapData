@@ -50,8 +50,8 @@ def scroll_and_scrape(driver):
     while not end_of_list_detected:
         try:
             # Wait for the scrollable results container to load
-            scrollable_div = WebDriverWait(driver, 2).until(
-                EC.presence_of_element_located((By.XPATH, "//div[contains(@aria-label, 'Results for')]"))
+            scrollable_div = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//div[@role='feed']"))
             )
 
             # Fetch all visible business results
