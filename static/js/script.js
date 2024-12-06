@@ -34,7 +34,7 @@ $(document).ready(function () {
                             <tr>
                                 <td>${result.Name}</td>
                                 <td>${result.Rating || "N/A"}</td>
-                                <td>${result.Description || "N/A"}</td>
+                                <td>${result.Address || "N/A"}</td>
                                 <td><a href="${result['Visited Link']}" target="_blank">${result['Visited Link'] || "N/A"}</a></td>
                                 <td>
                                     <img src="${result.Image || 'https://media.istockphoto.com/id/1354776457/vector/default-image-icon-vector-missing-picture-page-for-website-design-or-mobile-app-no-photo.jpg?s=612x612&w=0&k=20&c=w3OW0wX3LyiFRuDHo9A32Q0IUMtD4yjXEvQlqyYk9O4='}" 

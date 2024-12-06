@@ -1,136 +1,98 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+import requests
 import time
+import random
 
-
-def setup_driver():
-    """Set up the Selenium WebDriver in headless mode."""
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless=new")
-    options.add_argument("--start-maximized")
-    options.add_argument("--disable-notifications")
-    options.add_argument("--disable-popup-blocking")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    return webdriver.Chrome(options=options)
-
-
-def search_google_maps(driver, search_query):
-    """Search for a query on Google Maps."""
-    try:
-        driver.get("https://www.google.com/maps")
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "searchboxinput")))
-
-        search_box = driver.find_element(By.ID, "searchboxinput")
-        search_box.clear()
-        search_box.send_keys(search_query)
-        search_box.send_keys(Keys.RETURN)
-
-        # Wait for results to load
-        time.sleep(5)
-    except TimeoutException:
-        print("Error: Timeout while loading Google Maps or finding the search box.")
-        raise
-    except Exception as e:
-        print(f"Error during search operation: {e}")
-        raise
-
-
-def extract_business_data(business):
-    """Extract details for a single business."""
-    try:
-        name = business.find_element(By.CLASS_NAME, "qBF1Pd").text or "N/A"
-    except NoSuchElementException:
-        name = "N/A"
-
-    try:
-        rating = business.find_element(By.CLASS_NAME, "MW4etd").text
-        reviews = business.find_element(By.CLASS_NAME, "UY7F9").text
-        rating = f"{rating} {reviews}"
-    except NoSuchElementException:
-        rating = "N/A"
-
-    try:
-        description = "No Description"
-        description_elements = business.find_elements(By.CLASS_NAME, "W4Efsd")
-        if len(description_elements) > 1:
-            description = description_elements[1].text.strip() or "No Description"
-    except NoSuchElementException:
-        pass
-
-    try:
-        image = business.find_element(By.TAG_NAME, "img").get_attribute("src") or "N/A"
-    except NoSuchElementException:
-        image = "N/A"
-
-    try:
-        visited_link = business.find_element(By.CLASS_NAME, "hfpxzc").get_attribute("href") or "N/A"
-    except NoSuchElementException:
-        visited_link = "N/A"
-
-    return {
-        "Name": name,
-        "Rating": rating,
-        "Description": description,
-        "Image": image,
-        "Visited Link": visited_link,
+def get_google_places_api_data(api_key, query, next_page_token=None):
+    """Fetch data from Google Places API for a specific search query with pagination."""
+    url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+    
+    # Set up parameters
+    params = {
+        "query": query,  # For example, "restaurants in New York, USA"
+        "key": api_key
     }
-
-
-def scroll_and_scrape(driver):
-    """Scroll through Google Maps results and scrape data."""
-    results = []
-    end_of_list_detected = False
-
-    while not end_of_list_detected:
+    
+    if next_page_token:
+        params["pagetoken"] = next_page_token
+    
+    # Retry logic for failed requests
+    for attempt in range(5):  # Retry up to 5 times
         try:
-            scrollable_div = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "//div[@role='feed']"))
-            )
-            businesses = scrollable_div.find_elements(By.CLASS_NAME, "Nv2PK")
+            # Make the API request with a timeout
+            response = requests.get(url, params=params, timeout=10)  # 10 seconds timeout
+            if response.status_code != 200:
+                raise Exception(f"Error fetching data from Google Places API: {response.text}")
+            data = response.json()
+            return data
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            print(f"Attempt {attempt + 1} failed with error: {str(e)}")
+            # Wait a random time before retrying to avoid hitting the server too fast
+            time.sleep(random.uniform(3, 6))  # Random sleep between 3 and 6 seconds
+    raise Exception("Failed to fetch data from Google Places API after 5 attempts.")
 
-            for business in businesses:
-                business_data = extract_business_data(business)
-                if business_data not in results:
-                    results.append(business_data)
+def get_place_details(api_key, place_id):
+    """Fetch detailed information for a specific place from Google Places API."""
+    url = f"https://maps.googleapis.com/maps/api/place/details/json"
+    
+    params = {
+        "place_id": place_id,
+        "key": api_key
+    }
+    
+    # Retry logic for failed requests
+    for attempt in range(5):  # Retry up to 5 times
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            if response.status_code != 200:
+                raise Exception(f"Error fetching place details: {response.text}")
+            data = response.json()
+            return data["result"]
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            print(f"Attempt {attempt + 1} failed with error: {str(e)}")
+            time.sleep(random.uniform(3, 6))  # Random sleep to avoid retrying too fast
+    raise Exception("Failed to fetch place details after 5 attempts.")
 
-            try:
-                end_of_list = driver.find_element(By.CLASS_NAME, "PbZDve")
-                if end_of_list.is_displayed():
-                    end_of_list_detected = True
-            except NoSuchElementException:
-                pass
+def get_image_url(api_key, photo_reference):
+    """Generate the image URL from Google Place Photo API using the photo_reference."""
+    if not photo_reference:
+        return None
+    return f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_reference}&key={api_key}"
 
-            driver.execute_script("arguments[0].scrollBy(0, 1000);", scrollable_div)
-            time.sleep(1)
-        except TimeoutException:
-            print("Error: Timeout while scrolling through results.")
-            end_of_list_detected = True
-        except Exception as e:
-            print(f"Error during scrolling and scraping: {e}")
-            end_of_list_detected = True
+def scrape_google_maps_with_api(api_key, industry, city, country):
+    """Fetch business data using Google Places API for a given industry, city, and country."""
+    query = f"{industry} in {city}, {country}"
+    
+    all_results = []
+    next_page_token = None
 
-    driver.quit()
-    return results
+    while True:
+        data = get_google_places_api_data(api_key, query, next_page_token)
+        
+        places = data.get("results", [])
+        
+        for place in places:
+            place_id = place["place_id"]
+            details = get_place_details(api_key, place_id)
+            
+            place_data = {
+                "Name": details.get("name", "N/A"),
+                "Rating": details.get("rating", "N/A"),
+                "Address": details.get("formatted_address", "N/A"),
+                "Image": None,  
+                "Visited Link": details.get("url", "N/A"),
+            }
 
+            if "photos" in details:
+                photo_reference = details["photos"][0].get("photo_reference")
+                if photo_reference:
+                    place_data["Image"] = get_image_url(api_key, photo_reference)
 
-def scrape_google_maps(industry, country, city):
-    """Perform the Google Maps scrape for the provided search parameters."""
-    search_query = f"{industry} in {city}, {country}"
-    driver = setup_driver()
-    results = []
+            all_results.append(place_data)
+        
+        next_page_token = data.get("next_page_token", None)
+        if not next_page_token:
+            break
 
-    try:
-        search_google_maps(driver, search_query)
-        results = scroll_and_scrape(driver)
-    except Exception as e:
-        print(f"Error during scraping: {e}")
-    finally:
-        driver.quit()
+        time.sleep(2)  # Random delay to avoid hitting rate limits
 
-    return results
+    return all_results
